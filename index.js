@@ -171,9 +171,18 @@ async function startBot() {
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Conexión cerrada. Reconectando...', shouldReconnect);
-            if (shouldReconnect) startBot();
+            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            console.log('Conexión cerrada. Razón:', statusCode, 'Reconectando...', shouldReconnect);
+            
+            // Limpieza de eventos para evitar errores de sockets cerrados
+            sock.ev.removeAllListeners('connection.update');
+            sock.ev.removeAllListeners('creds.update');
+            sock.ev.removeAllListeners('messages.upsert');
+
+            if (shouldReconnect) {
+                setTimeout(() => startBot(), 3000);
+            }
         } else if (connection === 'open') {
             console.log('\n¡Bot conectado exitosamente a WhatsApp!');
         }
